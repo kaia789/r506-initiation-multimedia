@@ -58,6 +58,11 @@ const elements = {
   tapModeButton: document.getElementById('tap-mode-button'),
 };
 const context = elements.canvas.getContext('2d');
+// Hidden copy of the current camera frame, analysed by the pose model. On iPhone, a camera
+// video read directly by the model (WebGL) arrives rotated by 90°, while drawImage keeps it
+// upright: the model must see exactly what is displayed.
+const frameCanvas = document.createElement('canvas');
+const frameContext = frameCanvas.getContext('2d');
 
 let ml5Loading = null;
 let bodyPose = null;
@@ -108,16 +113,13 @@ async function startCamera() {
 }
 
 // Phones often change the camera size after the first frames (e.g. 640x480 -> 480x640 in
-// portrait): keep the canvas and the video attributes equal to the real frame size.
-// ml5 rescales the keypoints to the video's width/height attributes, so they stay in frame pixels.
+// portrait): keep both canvases equal to the real frame size
 function syncVideoSize() {
   const { video, canvas } = elements;
   const { videoWidth, videoHeight } = video;
   if (!videoWidth || (canvas.width === videoWidth && canvas.height === videoHeight)) return;
-  video.width = videoWidth;
-  video.height = videoHeight;
-  canvas.width = videoWidth;
-  canvas.height = videoHeight;
+  canvas.width = frameCanvas.width = videoWidth;
+  canvas.height = frameCanvas.height = videoHeight;
 }
 
 function stopCamera() {
@@ -188,7 +190,7 @@ export async function openDanceMode(dance, callbacks) {
   if (session !== current) return;
 
   session.mode = 'camera';
-  model.detectStart(elements.video, onPoses);
+  model.detectStart(frameCanvas, onPoses);
   startRound();
 }
 
@@ -269,7 +271,7 @@ function onPoses(poses) {
 }
 
 function computeEnergy(pose, previousPose) {
-  const width = elements.video.videoWidth || 1;
+  const width = frameCanvas.width || 1;
   let energy = 0;
   for (const name of TRACKED_KEYPOINTS) {
     const current = pose[name];
@@ -334,13 +336,14 @@ function showHit() {
   elements.stage.classList.add('flash');
 }
 
-// The camera frame is drawn in the canvas itself, under the skeleton: both use the same
-// pixels as the pose model, so they cannot drift apart whatever the screen or the camera
+// The displayed canvas shows the same frame as the one analysed by the model, with the
+// skeleton on top: they cannot drift apart whatever the screen or the camera
 function renderStage() {
   const video = elements.video;
   if (video.readyState < video.HAVE_CURRENT_DATA) return;
   syncVideoSize();
-  context.drawImage(video, 0, 0, elements.canvas.width, elements.canvas.height);
+  frameContext.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+  context.drawImage(frameCanvas, 0, 0);
   drawSkeleton(session.lastPose);
 }
 
