@@ -1,0 +1,143 @@
+:root {
+  --night-1: #0d1330;
+  --night-2: #1d2552;
+  --night-3: #3a2f6b;
+  --glass: rgba(255, 255, 255, 0.14);
+  --glass-strong: rgba(255, 255, 255, 0.22);
+  --glass-border: rgba(255, 255, 255, 0.28);
+  --text: #f7f5ff;
+  --text-soft: rgba(247, 245, 255, 0.75);
+  --coral: #ff8a80;
+  --gold: #ffd166;
+  --lavender: #c3b1ff;
+  --radius: 20px;
+  --gap: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--text);
+  background: radial-gradient(ellipse at 30% 20%, var(--night-3) 0%, var(--night-2) 40%, var(--night-1) 100%);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(5, 8, 30, 0.35);
+}
+
+.pill {
+  border-radius: 999px;
+}
+
+/* Globe */
+#globe-container {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
+#globe-container:active {
+  cursor: grabbing;
+}
+
+#globe-container canvas {
+  display: block;
+}
+
+#crosshair {
+  --dwell: 0;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Ring that fills up while the crosshair stays on a country */
+#crosshair .dwell-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gold) calc(var(--dwell) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 24px, #000 25px);
+  mask: radial-gradient(circle, transparent 24px, #000 25px);
+}
+
+#crosshair::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+#coords {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 34px);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#coords:empty {
+  display: none;
+}
+
+/* Toasts */
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--safe-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(92vw, 420px);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  background: rgba(30, 30, 70, 0.75);
+  animation: toast-in 0.3s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
