@@ -65,12 +65,13 @@ body {
 
 #crosshair {
   --dwell: 0;
+  --beat: 0;
   position: fixed;
   left: 50%;
   top: 50%;
   width: 46px;
   height: 46px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--beat)));
   border: 2px solid rgba(255, 255, 255, 0.85);
   border-radius: 50%;
   pointer-events: none;
@@ -179,6 +180,81 @@ body {
   font-weight: 700;
   font-size: 1rem;
   margin-right: auto;
+}
+
+/* Info card */
+#info-card {
+  --accent: var(--coral);
+  position: fixed;
+  top: calc(76px + var(--safe-top));
+  left: 10px;
+  right: 10px;
+  padding: 14px 18px 16px;
+  border-left: 6px solid var(--accent);
+  z-index: 10;
+  animation: card-in 0.35s ease-out;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.info-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-country {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#info-card h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+#info-description {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.info-meta {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.badge.unlocked {
+  color: #3b2a00;
+  background: var(--gold);
+}
+
+@media (min-width: 768px) {
+  #info-card {
+    left: auto;
+    right: 16px;
+    width: 360px;
+  }
 }
 
 /* Mini-map */
@@ -328,7 +404,7 @@ body {
 #toasts {
   position: fixed;
   left: 50%;
-  top: calc(76px + var(--safe-top));
+  bottom: calc(16px + var(--safe-bottom));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;

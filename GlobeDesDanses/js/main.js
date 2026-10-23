@@ -1,13 +1,19 @@
-import { DANCES } from '../data/dances.js';
+import { DANCES, getStepBpm } from '../data/dances.js';
 import {
-  initGlobe, renderGlobe, rotateView, flyTo, getCrosshairLatLon, findNearestDance, setHighlightedMarker,
+  initGlobe, renderGlobe, rotateView, flyTo, getCrosshairLatLon, findNearestDance, angularDistance,
+  setHighlightedMarker,
 } from './globe.js';
 import {
   initFallbackControls, getControlVelocity, startOrientation, calibrate,
 } from './orientation.js';
 import { initMiniMap, syncMiniMap, refreshMiniMapSize } from './map.js';
+import { unlockAudio, playDanceMusic, stopMusic, getMusicTime } from './audio.js';
 
 const SELECTION_RADIUS_DEG = 10;
+// A bit larger than the selection radius so that a small wobble does not stop the music
+const DESELECTION_RADIUS_DEG = 12;
+const DWELL_TIME_MS = 1500;
+const BEAT_PULSE_SCALE = 0.18;
 // Clamps the time step after a background tab or a slow frame
 const MAX_FRAME_SECONDS = 0.1;
 
@@ -20,16 +26,28 @@ const SENSOR_MESSAGES = {
 const state = {
   crosshair: null,
   hoveredDance: null,
+  // Dance under the crosshair and since when (to measure the dwell time)
+  candidate: null,
+  candidateSince: 0,
+  selectedDance: null,
 };
 
 const elements = {
   globeContainer: document.getElementById('globe-container'),
+  crosshair: document.getElementById('crosshair'),
   coords: document.getElementById('coords'),
   welcome: document.getElementById('welcome'),
   startButton: document.getElementById('start-button'),
   calibrateButton: document.getElementById('calibrate-button'),
   minimapPanel: document.getElementById('minimap-panel'),
   minimapToggle: document.getElementById('minimap-toggle'),
+  infoCard: document.getElementById('info-card'),
+  infoCountry: document.getElementById('info-country'),
+  infoDance: document.getElementById('info-dance'),
+  infoStatus: document.getElementById('info-status'),
+  infoDescription: document.getElementById('info-description'),
+  infoMeta: document.getElementById('info-meta'),
+  infoAudio: document.getElementById('info-audio'),
 };
 
 function formatLatLon({ lat, lon }) {
@@ -47,6 +65,8 @@ export function showToast(message, duration = 4500) {
 }
 
 async function start() {
+  // Both must be triggered by the click itself (autoplay policy, iOS permission prompt)
+  if (!unlockAudio()) showToast("Le son n'est pas disponible dans ce navigateur.");
   elements.welcome.classList.add('hidden');
   const result = await startOrientation();
   if (result.ok) {
@@ -67,6 +87,69 @@ function toggleMiniMap() {
   if (!collapsed) refreshMiniMapSize();
 }
 
+function showInfoCard(dance) {
+  elements.infoCard.style.setProperty('--accent', dance.couleur);
+  elements.infoCountry.textContent = dance.pays;
+  elements.infoDance.textContent = dance.danse;
+  elements.infoDescription.textContent = dance.description;
+  const stepBpm = getStepBpm(dance);
+  elements.infoMeta.textContent = stepBpm === dance.bpm
+    ? `🥁 ${dance.bpm} BPM`
+    : `🥁 ${dance.bpm} BPM (pas sur ${stepBpm})`;
+  elements.infoStatus.textContent = '🔒 À débloquer';
+  elements.infoAudio.textContent = '🎵 Chargement de la musique…';
+  elements.infoCard.classList.remove('hidden');
+}
+
+async function selectDance(dance) {
+  state.selectedDance = dance;
+  showInfoCard(dance);
+  const result = await playDanceMusic(dance);
+  if (!result || state.selectedDance !== dance) return;
+  elements.infoAudio.textContent = result.synthetic
+    ? `🎵 Rythme synthétique (ajoute audio/${dance.id}.mp3 pour la vraie musique)`
+    : '🎵 Musique en cours';
+}
+
+function deselectDance() {
+  state.selectedDance = null;
+  stopMusic();
+  elements.infoCard.classList.add('hidden');
+}
+
+function updateSelection(now) {
+  const hovered = state.hoveredDance;
+  const selected = state.selectedDance;
+
+  if (selected) {
+    const stillOnIt = state.crosshair
+      && (hovered === null || hovered === selected)
+      && angularDistance(state.crosshair, selected) <= DESELECTION_RADIUS_DEG;
+    if (stillOnIt) return;
+    deselectDance();
+  }
+
+  if (hovered !== state.candidate) {
+    state.candidate = hovered;
+    state.candidateSince = now;
+  }
+  const dwell = hovered ? Math.min((now - state.candidateSince) / DWELL_TIME_MS, 1) : 0;
+  elements.crosshair.style.setProperty('--dwell', dwell);
+  if (hovered && dwell === 1) selectDance(hovered);
+}
+
+// The crosshair beats with the music
+function updateBeatPulse() {
+  const musicTime = getMusicTime();
+  if (musicTime === null || musicTime < 0 || !state.selectedDance) {
+    elements.crosshair.style.setProperty('--beat', 0);
+    return;
+  }
+  const beatInterval = 60 / getStepBpm(state.selectedDance);
+  const phase = (musicTime % beatInterval) / beatInterval;
+  elements.crosshair.style.setProperty('--beat', ((1 - phase) ** 2 * BEAT_PULSE_SCALE).toFixed(3));
+}
+
 let lastFrame = performance.now();
 function loop(now) {
   const dt = Math.min((now - lastFrame) / 1000, MAX_FRAME_SECONDS);
@@ -83,6 +166,8 @@ function loop(now) {
   elements.coords.textContent = state.crosshair
     ? `${formatLatLon(state.crosshair)}${state.hoveredDance ? ' — ' + state.hoveredDance.pays : ''}`
     : '';
+  updateSelection(now);
+  updateBeatPulse();
   syncMiniMap(state.crosshair, now);
 
   requestAnimationFrame(loop);

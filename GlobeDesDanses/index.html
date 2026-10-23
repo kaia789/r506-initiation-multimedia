@@ -33,6 +33,19 @@
     <button id="calibrate-button" class="btn btn-small" type="button" title="Enregistre la position actuelle du téléphone comme position neutre">🎯 Calibrer</button>
   </header>
 
+  <section id="info-card" class="glass hidden" aria-live="polite">
+    <div class="info-header">
+      <div>
+        <p id="info-country" class="info-country"></p>
+        <h2 id="info-dance"></h2>
+      </div>
+      <span id="info-status" class="badge"></span>
+    </div>
+    <p id="info-description"></p>
+    <p id="info-meta" class="info-meta"></p>
+    <p id="info-audio" class="info-meta"></p>
+  </section>
+
   <aside id="minimap-panel" class="glass">
     <button id="minimap-toggle" class="btn btn-small" type="button" aria-expanded="true" aria-controls="minimap-frame">🗺️ Carte</button>
     <div id="minimap-frame">
