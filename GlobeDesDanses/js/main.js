@@ -1,10 +1,11 @@
 import { DANCES } from '../data/dances.js';
 import {
-  initGlobe, renderGlobe, rotateView, getCrosshairLatLon, findNearestDance, setHighlightedMarker,
+  initGlobe, renderGlobe, rotateView, flyTo, getCrosshairLatLon, findNearestDance, setHighlightedMarker,
 } from './globe.js';
 import {
   initFallbackControls, getControlVelocity, startOrientation, calibrate,
 } from './orientation.js';
+import { initMiniMap, syncMiniMap, refreshMiniMapSize } from './map.js';
 
 const SELECTION_RADIUS_DEG = 10;
 // Clamps the time step after a background tab or a slow frame
@@ -27,6 +28,8 @@ const elements = {
   welcome: document.getElementById('welcome'),
   startButton: document.getElementById('start-button'),
   calibrateButton: document.getElementById('calibrate-button'),
+  minimapPanel: document.getElementById('minimap-panel'),
+  minimapToggle: document.getElementById('minimap-toggle'),
 };
 
 function formatLatLon({ lat, lon }) {
@@ -58,6 +61,12 @@ function onCalibrate() {
   else showToast(SENSOR_MESSAGES['no-sensor']);
 }
 
+function toggleMiniMap() {
+  const collapsed = elements.minimapPanel.classList.toggle('collapsed');
+  elements.minimapToggle.setAttribute('aria-expanded', String(!collapsed));
+  if (!collapsed) refreshMiniMapSize();
+}
+
 let lastFrame = performance.now();
 function loop(now) {
   const dt = Math.min((now - lastFrame) / 1000, MAX_FRAME_SECONDS);
@@ -74,6 +83,7 @@ function loop(now) {
   elements.coords.textContent = state.crosshair
     ? `${formatLatLon(state.crosshair)}${state.hoveredDance ? ' — ' + state.hoveredDance.pays : ''}`
     : '';
+  syncMiniMap(state.crosshair, now);
 
   requestAnimationFrame(loop);
 }
@@ -82,6 +92,11 @@ initGlobe(elements.globeContainer, DANCES, () =>
   showToast("Texture de la Terre introuvable : affichage d'un globe uni.")
 );
 initFallbackControls(elements.globeContainer, rotateView);
+if (!initMiniMap('minimap', DANCES, (dance) => flyTo(dance.lat, dance.lon))) {
+  elements.minimapPanel.classList.add('hidden');
+  showToast('La mini-carte n’a pas pu être chargée (connexion ?) : le globe reste utilisable.');
+}
 elements.startButton.addEventListener('click', start);
 elements.calibrateButton.addEventListener('click', onCalibrate);
+elements.minimapToggle.addEventListener('click', toggleMiniMap);
 requestAnimationFrame(loop);
