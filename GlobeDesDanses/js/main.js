@@ -8,7 +8,7 @@ import {
 } from './orientation.js';
 import { initMiniMap, syncMiniMap, refreshMiniMapSize, setMapMarkerState, setMapCountryShapes } from './map.js';
 import { loadCountryShapes } from './countries.js';
-import { unlockAudio, playDanceMusic, stopMusic, getMusicTime } from './audio.js';
+import { unlockAudio, playDanceMusic, stopMusic, getMusicTime, isAudioRunning } from './audio.js';
 import {
   openDanceMode, closeDanceMode, updateDanceMode, retryRound, startTapMode, isDanceModeOpen,
 } from './dance.js';
@@ -22,6 +22,8 @@ const DWELL_TIME_MS = 1500;
 const BEAT_PULSE_SCALE = 0.18;
 // Clamps the time step after a background tab or a slow frame
 const MAX_FRAME_SECONDS = 0.1;
+
+const AUDIO_BLOCKED_MESSAGE = '🔇 Le téléphone bloque le son : touche l’écran, et vérifie le volume et le mode silencieux.';
 
 const SENSOR_MESSAGES = {
   unsupported: "Ton navigateur ne gère pas l'orientation : fais glisser le globe au doigt, à la souris ou avec les flèches.",
@@ -41,6 +43,8 @@ const state = {
   saveWarningShown: false,
   // Dance unlocked during the current round: revealed when the dance panel closes
   pendingReveal: null,
+  // Text shown when the music of the selected dance is audible
+  musicLabel: null,
 };
 
 const elements = {
@@ -207,17 +211,26 @@ function onRoundEnd(dance, { score, success }) {
 
 async function selectDance(dance) {
   state.selectedDance = dance;
+  state.musicLabel = null;
   elements.infoAudio.textContent = '🎵 Chargement de la musique…';
   showInfoCard(dance);
   const result = await playDanceMusic(dance);
   if (!result || state.selectedDance !== dance) return;
-  elements.infoAudio.textContent = result.synthetic
+  state.musicLabel = result.synthetic
     ? `🎵 Rythme synthétique (ajoute audio/${dance.id}.mp3 pour la vraie musique)`
     : '🎵 Musique en cours';
 }
 
+// The music can be playing for the page while the phone keeps the audio suspended
+function updateAudioLabel() {
+  if (!state.selectedDance || !state.musicLabel) return;
+  const text = isAudioRunning() ? state.musicLabel : AUDIO_BLOCKED_MESSAGE;
+  if (elements.infoAudio.textContent !== text) elements.infoAudio.textContent = text;
+}
+
 function deselectDance() {
   state.selectedDance = null;
+  state.musicLabel = null;
   stopMusic();
   elements.infoCard.classList.add('hidden');
 }
@@ -275,6 +288,7 @@ function loop(now) {
   if (isDanceModeOpen()) updateDanceMode();
   else updateSelection(now);
   updateBeatPulse();
+  updateAudioLabel();
   syncMiniMap(state.crosshair, now);
 
   requestAnimationFrame(loop);

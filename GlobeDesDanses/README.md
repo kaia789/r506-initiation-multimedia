@@ -107,7 +107,10 @@ ne suffit pas. Deux solutions :
   c'est ainsi que l'appli détecte qu'il faut passer au rythme synthétique (comportement normal).
 - **Orientation** pensée pour le mode **portrait** ; en paysage, les axes d'inclinaison ne
   correspondent plus aux directions attendues.
-- Sur iPhone, le **mode silencieux** coupe le son de la Web Audio API.
+- Sur iPhone, le **mode silencieux** coupe la Web Audio API. L'appli demande à iOS de jouer quand
+  même (`navigator.audioSession`, iOS 16.4+) ; sur les versions plus anciennes, il faut désactiver
+  le mode silencieux. Après un appel, un verrouillage ou un changement d'appli, le téléphone met le
+  son en pause : la carte d'info l'indique et il suffit de toucher l'écran pour le relancer.
 - Le modèle d'IA (quelques Mo) est téléchargé au premier « Danser ! » : il faut une connexion,
   et le premier chargement prend quelques secondes.
 - Le mode danse fige le globe : on ne peut pas changer de pays pendant une manche.

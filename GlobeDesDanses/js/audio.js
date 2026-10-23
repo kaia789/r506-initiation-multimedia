@@ -31,13 +31,27 @@ let playRequest = 0;
 // Must be called from a user gesture (click), otherwise browsers keep the audio muted.
 // The mp3 files also go through this context, so later playback needs no gesture (iOS).
 export function unlockAudio() {
+  // iOS mutes Web Audio when the silent switch is on, unless the page says it plays media
+  if (navigator.audioSession) navigator.audioSession.type = 'playback';
   if (!audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return false;
     audioContext = new AudioContextClass();
   }
-  if (audioContext.state === 'suspended') audioContext.resume();
+  if (audioContext.state !== 'running') audioContext.resume();
   return true;
+}
+
+// Phones suspend the audio after a call, the lock screen or an app switch ('suspended' or
+// Safari's 'interrupted'): it can only restart from a user gesture, so any tap tries again
+for (const type of ['touchend', 'click']) {
+  document.addEventListener(type, () => {
+    if (audioContext && audioContext.state !== 'running') audioContext.resume();
+  });
+}
+
+export function isAudioRunning() {
+  return audioContext?.state === 'running';
 }
 
 async function loadDanceBuffer(id) {
