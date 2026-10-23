@@ -24,6 +24,25 @@
   <div id="crosshair" aria-hidden="true"><div class="dwell-ring"></div></div>
   <p id="coords" class="glass pill"></p>
 
+  <header id="topbar" class="glass">
+    <span class="brand">🌍 Globe des danses</span>
+    <button id="calibrate-button" class="btn btn-small" type="button" title="Enregistre la position actuelle du téléphone comme position neutre">🎯 Calibrer</button>
+  </header>
+
+  <section id="welcome" class="overlay">
+    <div class="welcome-card glass">
+      <h1>Globe des danses</h1>
+      <p class="subtitle">Fais le tour du monde… en dansant !</p>
+      <ol class="steps">
+        <li><span class="step-icon">📱</span><span><strong>Incline</strong> ton téléphone pour faire tourner le globe.</span></li>
+        <li><span class="step-icon">🎯</span><span><strong>Arrête-toi</strong> sur un pays : sa musique se lance.</span></li>
+        <li><span class="step-icon">💃</span><span><strong>Danse</strong> en rythme devant la caméra pour le débloquer.</span></li>
+      </ol>
+      <button id="start-button" class="btn btn-primary" type="button">Démarrer</button>
+      <p class="hint">Sur ordinateur : fais glisser le globe à la souris ou utilise les flèches du clavier.</p>
+    </div>
+  </section>
+
   <div id="toasts" aria-live="polite"></div>
 
   <script type="module" src="js/main.js"></script>

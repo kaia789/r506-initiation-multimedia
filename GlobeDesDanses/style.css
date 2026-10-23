@@ -114,6 +114,139 @@ body {
   display: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
+/* Buttons: large touch targets */
+.btn {
+  min-height: 48px;
+  padding: 10px 22px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  font: 600 1rem 'Poppins', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--glass-strong);
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--lavender);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  border: none;
+  color: #2b1b3f;
+  background: linear-gradient(135deg, var(--coral), var(--gold));
+  box-shadow: 0 6px 20px rgba(255, 138, 128, 0.45);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff9d94, #ffdc85);
+}
+
+.btn-small {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+/* Top bar */
+#topbar {
+  position: fixed;
+  top: calc(10px + var(--safe-top));
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px 6px 16px;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-right: auto;
+}
+
+/* Welcome screen */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 14, 40, 0.55);
+  z-index: 40;
+}
+
+.welcome-card {
+  width: min(100%, 440px);
+  padding: 28px 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.welcome-card h1 {
+  margin: 0;
+  font-size: 2rem;
+  background: linear-gradient(135deg, var(--gold), var(--coral), var(--lavender));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  margin: 4px 0 20px;
+  color: var(--text-soft);
+}
+
+.steps {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.step-icon {
+  font-size: 1.6rem;
+}
+
+#start-button {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.15rem;
+}
+
+.hint {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
 /* Toasts */
 #toasts {
   position: fixed;
