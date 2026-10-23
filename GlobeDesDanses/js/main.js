@@ -1,12 +1,13 @@
 import { DANCES, getStepBpm } from '../data/dances.js';
 import {
   initGlobe, renderGlobe, rotateView, flyTo, getCrosshairLatLon, findNearestDance, angularDistance,
-  setHighlightedMarker, setMarkerUnlocked,
+  setHighlightedMarker, setDanceUnlocked, setCountryShapes,
 } from './globe.js';
 import {
   initFallbackControls, getControlVelocity, startOrientation, calibrate, setControlsEnabled,
 } from './orientation.js';
-import { initMiniMap, syncMiniMap, refreshMiniMapSize, setMapMarkerState } from './map.js';
+import { initMiniMap, syncMiniMap, refreshMiniMapSize, setMapMarkerState, setMapCountryShapes } from './map.js';
+import { loadCountryShapes } from './countries.js';
 import { unlockAudio, playDanceMusic, stopMusic, getMusicTime } from './audio.js';
 import {
   openDanceMode, closeDanceMode, updateDanceMode, retryRound, startTapMode, isDanceModeOpen,
@@ -38,6 +39,8 @@ const state = {
   unlocked: new Set(),
   bestScores: {},
   saveWarningShown: false,
+  // Dance unlocked during the current round: revealed when the dance panel closes
+  pendingReveal: null,
 };
 
 const elements = {
@@ -124,9 +127,9 @@ function updateInfoStatus(dance) {
     : `💃 Danser ! (record : ${bestScore} %)`;
 }
 
-function applyDanceProgress(dance) {
+function applyDanceProgress(dance, animate = false) {
   const unlocked = state.unlocked.has(dance.id);
-  setMarkerUnlocked(dance.id, unlocked);
+  setDanceUnlocked(dance.id, unlocked, animate);
   setMapMarkerState(dance.id, { unlocked, bestScore: state.bestScores[dance.id] ?? null });
 }
 
@@ -144,6 +147,11 @@ function exitDanceMode() {
   closeDanceMode();
   setControlsEnabled(true);
   if (state.selectedDance) showInfoCard(state.selectedDance);
+  // On a phone the panel hides the globe: the dark zone fades out once it is visible again
+  if (state.pendingReveal) {
+    applyDanceProgress(state.pendingReveal, true);
+    state.pendingReveal = null;
+  }
 }
 
 function updateProgressCounter() {
@@ -183,11 +191,13 @@ function resetProgress() {
 
 function onRoundEnd(dance, { score, success }) {
   state.bestScores[dance.id] = Math.max(score, state.bestScores[dance.id] ?? 0);
+  const newlyUnlocked = success && !state.unlocked.has(dance.id);
   if (success) {
     state.unlocked.add(dance.id);
     launchConfetti();
   }
-  applyDanceProgress(dance);
+  if (newlyUnlocked) state.pendingReveal = dance;
+  else applyDanceProgress(dance);
   updateProgressCounter();
   persistProgress();
   if (success && state.unlocked.size === DANCES.length) {
@@ -282,6 +292,13 @@ if (!initMiniMap('minimap', DANCES, onMapDanceClick)) {
   showToast('La mini-carte n’a pas pu être chargée (connexion ?) : le globe reste utilisable.');
 }
 restoreProgress();
+loadCountryShapes(DANCES).then((shapes) => {
+  if (shapes.size < DANCES.length) {
+    showToast('Certains contours de pays n’ont pas pu être chargés : seuls leurs marqueurs sont affichés.');
+  }
+  setCountryShapes(shapes);
+  setMapCountryShapes(shapes);
+});
 // Panels are placed under the top bar, whose height changes when it wraps
 const topbar = document.getElementById('topbar');
 new ResizeObserver(() => {

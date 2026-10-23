@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getPolygons } from './countries.js';
 
 const GLOBE_RADIUS = 1;
 const TEXTURE_URL = 'assets/earth_atmos_2048.jpg';
@@ -12,6 +13,17 @@ const COLOR_LOCKED = 0x9aa3b5;
 const COLOR_UNLOCKED = 0xffc94d;
 const UNLOCKED_EMISSIVE_INTENSITY = 0.9;
 const GLOW_PULSE_SPEED = 3;
+
+// Locked countries are painted on an equirectangular canvas wrapped on a sphere just above the Earth
+const LOCK_TEXTURE_WIDTH = 2048;
+const LOCK_TEXTURE_HEIGHT = 1024;
+const LOCK_LAYER_ALTITUDE = 0.002;
+const LOCK_FILL = 'rgba(12, 14, 34, 0.85)';
+const LOCK_STRIPE = 'rgba(195, 177, 255, 0.35)';
+const LOCK_STRIPE_SPACING_PX = 8;
+const LOCK_OUTLINE = 'rgba(195, 177, 255, 0.9)';
+const LOCK_OUTLINE_WIDTH_PX = 1.5;
+const LOCK_FADE_MS = 2500;
 
 const STAR_COUNT = 1500;
 const STAR_MIN_DISTANCE = 30;
@@ -34,6 +46,11 @@ const SCREEN_CENTER = new THREE.Vector2(0, 0);
 const view = { ...INITIAL_VIEW };
 let flight = null;
 let highlightedId = null;
+
+let lockContext, lockTexture, lockPattern;
+// id -> { path, opacity, fadeStart }
+const lockZones = new Map();
+const unlockedIds = new Set();
 
 // Three.js has Y up and SphereGeometry's texture starts at lon -180,
 // so the geographic frame (X, Y, Z) maps to (x, z, -y)
@@ -115,6 +132,7 @@ export function initGlobe(container, dances, onTextureError) {
   earth = new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64), earthMaterial);
   globe.add(earth);
 
+  globe.add(createLockLayer());
   createMarkers(dances);
   scene.add(createStars());
 
@@ -151,6 +169,85 @@ function createMarkers(dances) {
   }
 }
 
+function createLockLayer() {
+  const canvas = document.createElement('canvas');
+  canvas.width = LOCK_TEXTURE_WIDTH;
+  canvas.height = LOCK_TEXTURE_HEIGHT;
+  lockContext = canvas.getContext('2d');
+
+  // Diagonal stripes, like a "closed" sign
+  const tile = document.createElement('canvas');
+  tile.width = tile.height = LOCK_STRIPE_SPACING_PX;
+  const tileContext = tile.getContext('2d');
+  tileContext.strokeStyle = LOCK_STRIPE;
+  tileContext.beginPath();
+  tileContext.moveTo(0, LOCK_STRIPE_SPACING_PX);
+  tileContext.lineTo(LOCK_STRIPE_SPACING_PX, 0);
+  tileContext.stroke();
+  lockPattern = lockContext.createPattern(tile, 'repeat');
+
+  lockTexture = new THREE.CanvasTexture(canvas);
+  lockTexture.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS + LOCK_LAYER_ALTITUDE, 64, 64),
+    new THREE.MeshBasicMaterial({ map: lockTexture, transparent: true, depthWrite: false })
+  );
+}
+
+// Same equirectangular projection as the Earth texture: x follows the longitude, y the latitude
+function geometryToPath(geometry) {
+  const path = new Path2D();
+  for (const polygon of getPolygons(geometry)) {
+    for (const ring of polygon) {
+      ring.forEach(([lon, lat], index) => {
+        const x = ((lon + 180) / 360) * LOCK_TEXTURE_WIDTH;
+        const y = ((90 - lat) / 180) * LOCK_TEXTURE_HEIGHT;
+        if (index === 0) path.moveTo(x, y);
+        else path.lineTo(x, y);
+      });
+      path.closePath();
+    }
+  }
+  return path;
+}
+
+function drawLockZones() {
+  lockContext.clearRect(0, 0, LOCK_TEXTURE_WIDTH, LOCK_TEXTURE_HEIGHT);
+  lockContext.lineWidth = LOCK_OUTLINE_WIDTH_PX;
+  lockContext.strokeStyle = LOCK_OUTLINE;
+  for (const zone of lockZones.values()) {
+    if (zone.opacity <= 0) continue;
+    lockContext.globalAlpha = zone.opacity;
+    lockContext.fillStyle = LOCK_FILL;
+    lockContext.fill(zone.path, 'evenodd');
+    lockContext.fillStyle = lockPattern;
+    lockContext.fill(zone.path, 'evenodd');
+    lockContext.stroke(zone.path);
+  }
+  lockContext.globalAlpha = 1;
+  lockTexture.needsUpdate = true;
+}
+
+// shapes: Map dance id -> GeoJSON geometry (they arrive after the globe is displayed)
+export function setCountryShapes(shapes) {
+  for (const [id, geometry] of shapes) {
+    lockZones.set(id, { path: geometryToPath(geometry), opacity: unlockedIds.has(id) ? 0 : 1, fadeStart: null });
+  }
+  drawLockZones();
+}
+
+function updateLockFades(now) {
+  let changed = false;
+  for (const zone of lockZones.values()) {
+    if (zone.fadeStart === null) continue;
+    const progress = Math.min(1, (now - zone.fadeStart) / LOCK_FADE_MS);
+    zone.opacity = 1 - progress;
+    if (progress === 1) zone.fadeStart = null;
+    changed = true;
+  }
+  if (changed) drawLockZones();
+}
+
 function createStars() {
   const positions = new Float32Array(STAR_COUNT * 3);
   const direction = new THREE.Vector3();
@@ -181,13 +278,28 @@ function resizeGlobe() {
   renderer.setSize(width, height);
 }
 
-export function setMarkerUnlocked(id, unlocked) {
+// Marker colour + dark country zone; `animate` fades the zone out instead of removing it at once
+export function setDanceUnlocked(id, unlocked, animate = false) {
+  if (unlocked) unlockedIds.add(id);
+  else unlockedIds.delete(id);
+
   const marker = markers.get(id);
-  if (!marker) return;
-  marker.mesh.material.color.set(unlocked ? COLOR_UNLOCKED : COLOR_LOCKED);
-  marker.mesh.material.emissive.set(unlocked ? COLOR_UNLOCKED : 0x000000);
-  marker.mesh.material.emissiveIntensity = unlocked ? UNLOCKED_EMISSIVE_INTENSITY : 1;
-  marker.glow.visible = unlocked;
+  if (marker) {
+    marker.mesh.material.color.set(unlocked ? COLOR_UNLOCKED : COLOR_LOCKED);
+    marker.mesh.material.emissive.set(unlocked ? COLOR_UNLOCKED : 0x000000);
+    marker.mesh.material.emissiveIntensity = unlocked ? UNLOCKED_EMISSIVE_INTENSITY : 1;
+    marker.glow.visible = unlocked;
+  }
+
+  const zone = lockZones.get(id);
+  if (!zone) return;
+  if (unlocked && animate && zone.opacity > 0) {
+    zone.fadeStart = performance.now();
+    return;
+  }
+  zone.fadeStart = null;
+  zone.opacity = unlocked ? 0 : 1;
+  drawLockZones();
 }
 
 export function setHighlightedMarker(id) {
@@ -233,6 +345,7 @@ export function getCrosshairLatLon() {
 
 export function renderGlobe(now) {
   updateFlight(now);
+  updateLockFades(now);
 
   // Rotate so that (view.lat, view.lon) faces the camera, north kept up
   globe.rotation.x = THREE.MathUtils.degToRad(view.lat);

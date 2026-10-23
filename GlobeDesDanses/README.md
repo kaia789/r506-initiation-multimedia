@@ -11,6 +11,8 @@ pays sur la mini-carte.
 
 - **Globe 3D** texturé avec fond étoilé, un marqueur par pays (gris = verrouillé, doré et
   brillant = débloqué), viseur fixe au centre de l'écran.
+- **Pays verrouillés** : chaque pays à débloquer est recouvert d'une zone sombre hachurée, sur le
+  globe comme sur la mini-carte ; elle s'efface en fondu quand on débloque le pays.
 - **Sélection par raycast** : rayon lancé au centre de l'écran → point du globe → latitude/longitude
   → pays le plus proche (seuil de 10°). Après 1,5 s sous le viseur, le pays est sélectionné.
 - **Contrôle par inclinaison** du téléphone (`deviceorientation`) : vitesse proportionnelle à
@@ -37,6 +39,7 @@ pays sur la mini-carte.
 | IA | [ml5.js](https://ml5js.org/) 1.3.1, `ml5.bodyPose` (MoveNet SinglePose Lightning) |
 | Son | Web Audio API |
 | Capteurs | DeviceOrientation Event |
+| Contours des pays | GeoJSON [mledoze/countries](https://github.com/mledoze/countries) 5.1.0 (données Natural Earth) |
 | Style | CSS (glassmorphism), police Poppins (Google Fonts) |
 
 ## Structure
@@ -50,7 +53,8 @@ GlobeDesDanses/
 ├── data/dances.js                liste des danses
 └── js/
     ├── main.js          initialisation, état global, boucle d'animation, interface
-    ├── globe.js         Three.js : globe, marqueurs, raycast, latLonToVector3 / vector3ToLatLon
+    ├── globe.js         Three.js : globe, marqueurs, zones verrouillées, raycast, latLonToVector3 / vector3ToLatLon
+    ├── countries.js     chargement des contours des pays (GeoJSON)
     ├── orientation.js   capteurs d'orientation + souris / doigt / clavier
     ├── map.js           mini-carte Leaflet
     ├── audio.js         lecture des mp3 et rythme synthétique
@@ -61,8 +65,9 @@ GlobeDesDanses/
 
 ## Ajouter une danse
 
-Ajoute une entrée dans `data/dances.js` (`id`, `pays`, `danse`, `lat`, `lon`, `bpm`, `description`,
-`couleur`, et `bpmPas` si le pas est plus lent que la musique, comme pour la salsa). Le globe, la
+Ajoute une entrée dans `data/dances.js` (`id`, `iso`, `pays`, `danse`, `lat`, `lon`, `bpm`,
+`description`, `couleur`, et `bpmPas` si le pas est plus lent que la musique, comme pour la salsa).
+`iso` est le code ISO à 3 lettres du pays (`FRA`, `JPN`…) : il sert à charger son contour. Le globe, la
 carte et le compteur s'adaptent tout seuls. Pour la musique, voir [audio/README.md](audio/README.md).
 
 ## Tester en local
@@ -106,5 +111,7 @@ ne suffit pas. Deux solutions :
 - Le modèle d'IA (quelques Mo) est téléchargé au premier « Danser ! » : il faut une connexion,
   et le premier chargement prend quelques secondes.
 - Le mode danse fige le globe : on ne peut pas changer de pays pendant une manche.
+- Les contours des pays (≈ 1 Mo, surtout les États-Unis) sont téléchargés au démarrage : sans
+  connexion, les zones sombres n'apparaissent pas mais le jeu reste jouable avec les marqueurs.
 - Les tuiles CARTO (Positron) demandent désormais une clé API : la carte utilise donc les tuiles
   OpenStreetMap, adoucies en CSS pour le style pastel.

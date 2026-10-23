@@ -1,9 +1,11 @@
 // To add a dance, append an entry: the globe, the map and the counter adapt automatically.
 // Music file (optional): audio/<id>.mp3. Without it, a synthetic beat is played at `bpm`.
+// `iso`: ISO 3166-1 alpha-3 code, used to load the country outline (dark "locked" zone).
 // `bpmPas` (optional): tempo of the dance step when it differs from the music tempo.
 export const DANCES = [
   {
     id: 'afrique-du-sud',
+    iso: 'ZAF',
     pays: 'Afrique du Sud',
     danse: 'Amapiano',
     lat: -29.0,
@@ -14,6 +16,7 @@ export const DANCES = [
   },
   {
     id: 'cuba',
+    iso: 'CUB',
     pays: 'Cuba',
     danse: 'Salsa',
     lat: 21.8,
@@ -25,6 +28,7 @@ export const DANCES = [
   },
   {
     id: 'republique-dominicaine',
+    iso: 'DOM',
     pays: 'République dominicaine',
     danse: 'Bachata',
     lat: 18.8,
@@ -35,6 +39,7 @@ export const DANCES = [
   },
   {
     id: 'bresil',
+    iso: 'BRA',
     pays: 'Brésil',
     danse: 'Samba',
     lat: -12.0,
@@ -45,6 +50,7 @@ export const DANCES = [
   },
   {
     id: 'jamaique',
+    iso: 'JAM',
     pays: 'Jamaïque',
     danse: 'Dancehall',
     lat: 18.1,
@@ -55,6 +61,7 @@ export const DANCES = [
   },
   {
     id: 'argentine',
+    iso: 'ARG',
     pays: 'Argentine',
     danse: 'Tango',
     lat: -34.0,
@@ -65,6 +72,7 @@ export const DANCES = [
   },
   {
     id: 'colombie',
+    iso: 'COL',
     pays: 'Colombie',
     danse: 'Cumbia',
     lat: 4.6,
@@ -75,6 +83,7 @@ export const DANCES = [
   },
   {
     id: 'nigeria',
+    iso: 'NGA',
     pays: 'Nigeria',
     danse: 'Afrobeats',
     lat: 9.1,
@@ -85,6 +94,7 @@ export const DANCES = [
   },
   {
     id: 'coree-du-sud',
+    iso: 'KOR',
     pays: 'Corée du Sud',
     danse: 'K-pop',
     lat: 36.5,
@@ -95,6 +105,7 @@ export const DANCES = [
   },
   {
     id: 'etats-unis',
+    iso: 'USA',
     pays: 'États-Unis',
     danse: 'Hip-hop des années 2000',
     lat: 39.8,
@@ -105,6 +116,7 @@ export const DANCES = [
   },
   {
     id: 'espagne',
+    iso: 'ESP',
     pays: 'Espagne',
     danse: 'Flamenco',
     lat: 40.4,
@@ -115,6 +127,7 @@ export const DANCES = [
   },
   {
     id: 'france',
+    iso: 'FRA',
     pays: 'France',
     danse: 'House (French Touch)',
     lat: 46.6,
@@ -125,6 +138,7 @@ export const DANCES = [
   },
   {
     id: 'inde',
+    iso: 'IND',
     pays: 'Inde',
     danse: 'Bhangra',
     lat: 22.0,
