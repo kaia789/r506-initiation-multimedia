@@ -12,6 +12,7 @@ import {
   openDanceMode, closeDanceMode, updateDanceMode, retryRound, startTapMode, isDanceModeOpen,
 } from './dance.js';
 import { launchConfetti } from './confetti.js';
+import { loadProgress, saveProgress, clearProgress } from './storage.js';
 
 const SELECTION_RADIUS_DEG = 10;
 // A bit larger than the selection radius so that a small wobble does not stop the music
@@ -36,6 +37,7 @@ const state = {
   selectedDance: null,
   unlocked: new Set(),
   bestScores: {},
+  saveWarningShown: false,
 };
 
 const elements = {
@@ -58,6 +60,8 @@ const elements = {
   danceClose: document.getElementById('dance-close'),
   retryButton: document.getElementById('retry-button'),
   tapModeButton: document.getElementById('tap-mode-button'),
+  progressCounter: document.getElementById('progress-counter'),
+  resetButton: document.getElementById('reset-button'),
 };
 
 function formatLatLon({ lat, lon }) {
@@ -66,7 +70,7 @@ function formatLatLon({ lat, lon }) {
   return `${latText} · ${lonText}`;
 }
 
-export function showToast(message, duration = 4500) {
+function showToast(message, duration = 4500) {
   const toast = document.createElement('div');
   toast.className = 'toast glass';
   toast.textContent = message;
@@ -142,6 +146,41 @@ function exitDanceMode() {
   if (state.selectedDance) showInfoCard(state.selectedDance);
 }
 
+function updateProgressCounter() {
+  elements.progressCounter.textContent = `⭐ ${state.unlocked.size} / ${DANCES.length} danses débloquées`;
+}
+
+function persistProgress() {
+  const saved = saveProgress({ unlocked: [...state.unlocked], bestScores: state.bestScores });
+  if (!saved && !state.saveWarningShown) {
+    state.saveWarningShown = true;
+    showToast('Ta progression ne peut pas être sauvegardée sur cet appareil (navigation privée ?).');
+  }
+}
+
+function restoreProgress() {
+  const progress = loadProgress();
+  // Ignore ids that are no longer in the dance list
+  const knownIds = new Set(DANCES.map((dance) => dance.id));
+  state.unlocked = new Set(progress.unlocked.filter((id) => knownIds.has(id)));
+  state.bestScores = Object.fromEntries(
+    Object.entries(progress.bestScores).filter(([id, score]) => knownIds.has(id) && Number.isFinite(score))
+  );
+  DANCES.forEach(applyDanceProgress);
+  updateProgressCounter();
+}
+
+function resetProgress() {
+  if (!confirm('Effacer toutes les danses débloquées et les meilleurs scores ?')) return;
+  clearProgress();
+  state.unlocked.clear();
+  state.bestScores = {};
+  DANCES.forEach(applyDanceProgress);
+  updateProgressCounter();
+  if (state.selectedDance) updateInfoStatus(state.selectedDance);
+  showToast('Progression réinitialisée.');
+}
+
 function onRoundEnd(dance, { score, success }) {
   state.bestScores[dance.id] = Math.max(score, state.bestScores[dance.id] ?? 0);
   if (success) {
@@ -149,6 +188,11 @@ function onRoundEnd(dance, { score, success }) {
     launchConfetti();
   }
   applyDanceProgress(dance);
+  updateProgressCounter();
+  persistProgress();
+  if (success && state.unlocked.size === DANCES.length) {
+    showToast('🌍 Incroyable : tu as débloqué toutes les danses du monde !', 7000);
+  }
 }
 
 async function selectDance(dance) {
@@ -237,7 +281,14 @@ if (!initMiniMap('minimap', DANCES, onMapDanceClick)) {
   elements.minimapPanel.classList.add('hidden');
   showToast('La mini-carte n’a pas pu être chargée (connexion ?) : le globe reste utilisable.');
 }
+restoreProgress();
+// Panels are placed under the top bar, whose height changes when it wraps
+const topbar = document.getElementById('topbar');
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty('--topbar-height', `${topbar.offsetHeight}px`);
+}).observe(topbar);
 elements.startButton.addEventListener('click', start);
+elements.resetButton.addEventListener('click', resetProgress);
 elements.calibrateButton.addEventListener('click', onCalibrate);
 elements.minimapToggle.addEventListener('click', toggleMiniMap);
 elements.danceButton.addEventListener('click', enterDanceMode);

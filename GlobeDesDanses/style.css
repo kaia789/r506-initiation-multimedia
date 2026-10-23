@@ -14,6 +14,9 @@
   --gap: 12px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Updated from JS: the top bar may wrap on small screens */
+  --topbar-height: 56px;
+  --panel-top: calc(var(--topbar-height) + 20px + var(--safe-top));
 }
 
 * {
@@ -180,13 +183,53 @@ body {
   font-weight: 700;
   font-size: 1rem;
   margin-right: auto;
+  white-space: nowrap;
+}
+
+.counter {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #3b2a00;
+  background: linear-gradient(135deg, var(--gold), #ffe5a3);
+}
+
+.btn-icon {
+  min-width: 40px;
+  padding: 6px 10px;
+  font-size: 1.1rem;
+}
+
+/* On phones the counter matters more than the title (shown on the welcome screen) */
+@media (max-width: 520px) {
+  .brand {
+    display: none;
+  }
+
+  #topbar {
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .counter {
+    margin-right: auto;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  #topbar .btn-small {
+    padding: 6px 12px;
+  }
 }
 
 /* Info card */
 #info-card {
   --accent: var(--coral);
   position: fixed;
-  top: calc(76px + var(--safe-top));
+  top: var(--panel-top);
   left: 10px;
   right: 10px;
   padding: 14px 18px 16px;
@@ -258,7 +301,7 @@ body {
 #dance-panel {
   --accent: var(--coral);
   position: fixed;
-  top: calc(76px + var(--safe-top));
+  top: var(--panel-top);
   left: 10px;
   right: 10px;
   padding: 12px 14px 14px;
@@ -359,6 +402,7 @@ body {
   font-size: 5rem;
   font-weight: 700;
   text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  background: rgba(10, 14, 40, 0.6);
   pointer-events: none;
 }
 
