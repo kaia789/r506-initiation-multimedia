@@ -249,11 +249,204 @@ body {
   background: var(--gold);
 }
 
+#dance-button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Dance mode */
+#dance-panel {
+  --accent: var(--coral);
+  position: fixed;
+  top: calc(76px + var(--safe-top));
+  left: 10px;
+  right: 10px;
+  padding: 12px 14px 14px;
+  border-left: 6px solid var(--accent);
+  z-index: 20;
+  animation: card-in 0.35s ease-out;
+}
+
+.dance-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#dance-title {
+  margin: 0 auto 0 0;
+  font-size: 1.05rem;
+}
+
+#beat-dot {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+#beat-dot.beat {
+  animation: beat-flash 0.3s ease-out;
+}
+
+@keyframes beat-flash {
+  from {
+    background: var(--gold);
+    transform: scale(1.7);
+    box-shadow: 0 0 14px var(--gold);
+  }
+}
+
+#dance-stage {
+  position: relative;
+  height: 34vh;
+  margin-top: 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(5, 8, 30, 0.45);
+}
+
+/* Same intrinsic size and object-fit: the skeleton stays aligned with the video */
+#dance-video,
+#dance-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Mirror, like a selfie */
+  transform: scaleX(-1);
+}
+
+#tap-zone {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: none;
+  font: 600 1.1rem 'Poppins', system-ui, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle, rgba(195, 177, 255, 0.35), rgba(5, 8, 30, 0.2));
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#dance-stage.tap-mode #tap-zone {
+  display: block;
+}
+
+#dance-stage.tap-mode #dance-video,
+#dance-stage.tap-mode #dance-canvas {
+  display: none;
+}
+
+#tap-zone.pressed {
+  animation: tap-press 0.2s ease-out;
+}
+
+@keyframes tap-press {
+  from {
+    background: radial-gradient(circle, rgba(255, 209, 102, 0.6), rgba(5, 8, 30, 0.2));
+  }
+}
+
+#dance-countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 5rem;
+  font-weight: 700;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+#dance-countdown:empty {
+  display: none;
+}
+
+#dance-hits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hit-popup {
+  position: absolute;
+  bottom: 20%;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: hit-rise 0.8s ease-out forwards;
+}
+
+@keyframes hit-rise {
+  to {
+    opacity: 0;
+    transform: translateY(-80px);
+  }
+}
+
+#dance-stage.flash {
+  animation: stage-flash 0.35s ease-out;
+}
+
+@keyframes stage-flash {
+  from {
+    box-shadow: inset 0 0 0 4px var(--gold), inset 0 0 30px var(--gold);
+  }
+}
+
+.gauge {
+  height: 14px;
+  margin-top: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+#gauge-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--lavender), var(--coral), var(--gold));
+  transition: width 0.25s ease-out;
+}
+
+#dance-status {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+}
+
+.dance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 60;
+}
+
 @media (min-width: 768px) {
-  #info-card {
+  #info-card,
+  #dance-panel {
     left: auto;
     right: 16px;
-    width: 360px;
+    width: 380px;
+  }
+
+  #dance-stage {
+    height: 285px;
   }
 }
 

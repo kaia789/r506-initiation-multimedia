@@ -44,6 +44,28 @@
     <p id="info-description"></p>
     <p id="info-meta" class="info-meta"></p>
     <p id="info-audio" class="info-meta"></p>
+    <button id="dance-button" class="btn btn-primary" type="button">💃 Danser !</button>
+  </section>
+
+  <section id="dance-panel" class="glass hidden" aria-live="polite">
+    <div class="dance-header">
+      <h2 id="dance-title"></h2>
+      <span id="beat-dot" title="Temps de la musique"></span>
+      <button id="dance-close" class="btn btn-small" type="button">✕ Fermer</button>
+    </div>
+    <div id="dance-stage">
+      <video id="dance-video" playsinline muted></video>
+      <canvas id="dance-canvas"></canvas>
+      <button id="tap-zone" type="button">👆 Tape ici sur chaque temps<br><small>(ou barre d’espace)</small></button>
+      <div id="dance-countdown"></div>
+      <div id="dance-hits"></div>
+    </div>
+    <div class="gauge" aria-label="Jauge de rythme"><div id="gauge-fill"></div></div>
+    <p id="dance-status"></p>
+    <div class="dance-actions">
+      <button id="retry-button" class="btn btn-primary hidden" type="button">🔁 Réessayer</button>
+      <button id="tap-mode-button" class="btn hidden" type="button">👆 Jouer en tapant le rythme</button>
+    </div>
   </section>
 
   <aside id="minimap-panel" class="glass">

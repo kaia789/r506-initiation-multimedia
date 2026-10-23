@@ -1,13 +1,17 @@
 import { DANCES, getStepBpm } from '../data/dances.js';
 import {
   initGlobe, renderGlobe, rotateView, flyTo, getCrosshairLatLon, findNearestDance, angularDistance,
-  setHighlightedMarker,
+  setHighlightedMarker, setMarkerUnlocked,
 } from './globe.js';
 import {
-  initFallbackControls, getControlVelocity, startOrientation, calibrate,
+  initFallbackControls, getControlVelocity, startOrientation, calibrate, setControlsEnabled,
 } from './orientation.js';
-import { initMiniMap, syncMiniMap, refreshMiniMapSize } from './map.js';
+import { initMiniMap, syncMiniMap, refreshMiniMapSize, setMapMarkerState } from './map.js';
 import { unlockAudio, playDanceMusic, stopMusic, getMusicTime } from './audio.js';
+import {
+  openDanceMode, closeDanceMode, updateDanceMode, retryRound, startTapMode, isDanceModeOpen,
+} from './dance.js';
+import { launchConfetti } from './confetti.js';
 
 const SELECTION_RADIUS_DEG = 10;
 // A bit larger than the selection radius so that a small wobble does not stop the music
@@ -30,6 +34,8 @@ const state = {
   candidate: null,
   candidateSince: 0,
   selectedDance: null,
+  unlocked: new Set(),
+  bestScores: {},
 };
 
 const elements = {
@@ -48,6 +54,10 @@ const elements = {
   infoDescription: document.getElementById('info-description'),
   infoMeta: document.getElementById('info-meta'),
   infoAudio: document.getElementById('info-audio'),
+  danceButton: document.getElementById('dance-button'),
+  danceClose: document.getElementById('dance-close'),
+  retryButton: document.getElementById('retry-button'),
+  tapModeButton: document.getElementById('tap-mode-button'),
 };
 
 function formatLatLon({ lat, lon }) {
@@ -96,13 +106,54 @@ function showInfoCard(dance) {
   elements.infoMeta.textContent = stepBpm === dance.bpm
     ? `🥁 ${dance.bpm} BPM`
     : `🥁 ${dance.bpm} BPM (pas sur ${stepBpm})`;
-  elements.infoStatus.textContent = '🔒 À débloquer';
-  elements.infoAudio.textContent = '🎵 Chargement de la musique…';
+  updateInfoStatus(dance);
   elements.infoCard.classList.remove('hidden');
+}
+
+function updateInfoStatus(dance) {
+  const unlocked = state.unlocked.has(dance.id);
+  const bestScore = state.bestScores[dance.id];
+  elements.infoStatus.textContent = unlocked ? '⭐ Débloquée' : '🔒 À débloquer';
+  elements.infoStatus.classList.toggle('unlocked', unlocked);
+  elements.danceButton.textContent = bestScore === undefined
+    ? '💃 Danser !'
+    : `💃 Danser ! (record : ${bestScore} %)`;
+}
+
+function applyDanceProgress(dance) {
+  const unlocked = state.unlocked.has(dance.id);
+  setMarkerUnlocked(dance.id, unlocked);
+  setMapMarkerState(dance.id, { unlocked, bestScore: state.bestScores[dance.id] ?? null });
+}
+
+function enterDanceMode() {
+  const dance = state.selectedDance;
+  if (!dance) return;
+  // The click is a user gesture: good moment to make sure the audio is running
+  unlockAudio();
+  setControlsEnabled(false);
+  elements.infoCard.classList.add('hidden');
+  openDanceMode(dance, { onRoundEnd: (result) => onRoundEnd(dance, result) });
+}
+
+function exitDanceMode() {
+  closeDanceMode();
+  setControlsEnabled(true);
+  if (state.selectedDance) showInfoCard(state.selectedDance);
+}
+
+function onRoundEnd(dance, { score, success }) {
+  state.bestScores[dance.id] = Math.max(score, state.bestScores[dance.id] ?? 0);
+  if (success) {
+    state.unlocked.add(dance.id);
+    launchConfetti();
+  }
+  applyDanceProgress(dance);
 }
 
 async function selectDance(dance) {
   state.selectedDance = dance;
+  elements.infoAudio.textContent = '🎵 Chargement de la musique…';
   showInfoCard(dance);
   const result = await playDanceMusic(dance);
   if (!result || state.selectedDance !== dance) return;
@@ -166,7 +217,9 @@ function loop(now) {
   elements.coords.textContent = state.crosshair
     ? `${formatLatLon(state.crosshair)}${state.hoveredDance ? ' — ' + state.hoveredDance.pays : ''}`
     : '';
-  updateSelection(now);
+  // The globe is frozen while dancing, so the selection cannot change
+  if (isDanceModeOpen()) updateDanceMode();
+  else updateSelection(now);
   updateBeatPulse();
   syncMiniMap(state.crosshair, now);
 
@@ -177,11 +230,18 @@ initGlobe(elements.globeContainer, DANCES, () =>
   showToast("Texture de la Terre introuvable : affichage d'un globe uni.")
 );
 initFallbackControls(elements.globeContainer, rotateView);
-if (!initMiniMap('minimap', DANCES, (dance) => flyTo(dance.lat, dance.lon))) {
+const onMapDanceClick = (dance) => {
+  if (!isDanceModeOpen()) flyTo(dance.lat, dance.lon);
+};
+if (!initMiniMap('minimap', DANCES, onMapDanceClick)) {
   elements.minimapPanel.classList.add('hidden');
   showToast('La mini-carte n’a pas pu être chargée (connexion ?) : le globe reste utilisable.');
 }
 elements.startButton.addEventListener('click', start);
 elements.calibrateButton.addEventListener('click', onCalibrate);
 elements.minimapToggle.addEventListener('click', toggleMiniMap);
+elements.danceButton.addEventListener('click', enterDanceMode);
+elements.danceClose.addEventListener('click', exitDanceMode);
+elements.retryButton.addEventListener('click', retryRound);
+elements.tapModeButton.addEventListener('click', startTapMode);
 requestAnimationFrame(loop);
