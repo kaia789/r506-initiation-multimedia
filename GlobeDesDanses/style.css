@@ -350,16 +350,22 @@ body {
   background: rgba(5, 8, 30, 0.45);
 }
 
-/* Same intrinsic size and object-fit: the skeleton stays aligned with the video */
+/* The canvas shows the camera frame and the skeleton together. The whole frame is kept
+   (contain) so that the head and the feet stay visible. */
 #dance-video,
 #dance-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   /* Mirror, like a selfie */
   transform: scaleX(-1);
+}
+
+/* Still playing (needed by ml5 and the canvas), but only the canvas is shown */
+#dance-video {
+  opacity: 0;
 }
 
 #tap-zone {

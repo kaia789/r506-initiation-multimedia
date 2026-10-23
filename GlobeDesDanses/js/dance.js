@@ -104,11 +104,20 @@ async function startCamera() {
   const video = elements.video;
   video.srcObject = stream;
   await video.play();
-  // ml5 rescales the keypoints to the width/height attributes of the video element
-  video.width = video.videoWidth;
-  video.height = video.videoHeight;
-  elements.canvas.width = video.videoWidth;
-  elements.canvas.height = video.videoHeight;
+  syncVideoSize();
+}
+
+// Phones often change the camera size after the first frames (e.g. 640x480 -> 480x640 in
+// portrait): keep the canvas and the video attributes equal to the real frame size.
+// ml5 rescales the keypoints to the video's width/height attributes, so they stay in frame pixels.
+function syncVideoSize() {
+  const { video, canvas } = elements;
+  const { videoWidth, videoHeight } = video;
+  if (!videoWidth || (canvas.width === videoWidth && canvas.height === videoHeight)) return;
+  video.width = videoWidth;
+  video.height = videoHeight;
+  canvas.width = videoWidth;
+  canvas.height = videoHeight;
 }
 
 function stopCamera() {
@@ -257,7 +266,6 @@ function onPoses(poses) {
   }
   session.lastPose = pose;
   session.lastPoseTime = now;
-  drawSkeleton(pose);
 }
 
 function computeEnergy(pose, previousPose) {
@@ -326,9 +334,17 @@ function showHit() {
   elements.stage.classList.add('flash');
 }
 
+// The camera frame is drawn in the canvas itself, under the skeleton: both use the same
+// pixels as the pose model, so they cannot drift apart whatever the screen or the camera
+function renderStage() {
+  const video = elements.video;
+  if (video.readyState < video.HAVE_CURRENT_DATA) return;
+  syncVideoSize();
+  context.drawImage(video, 0, 0, elements.canvas.width, elements.canvas.height);
+  drawSkeleton(session.lastPose);
+}
+
 function drawSkeleton(pose) {
-  const { width, height } = elements.canvas;
-  context.clearRect(0, 0, width, height);
   if (!pose) return;
 
   context.lineWidth = SKELETON_LINE_WIDTH;
@@ -353,6 +369,7 @@ function drawSkeleton(pose) {
 
 // Called by the main loop on every frame while the dance mode is open
 export function updateDanceMode() {
+  if (session?.mode === 'camera') renderStage();
   const round = session?.round;
   if (!round || round.finished) return;
   const musicTime = getMusicTime();
