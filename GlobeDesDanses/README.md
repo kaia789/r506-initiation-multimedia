@@ -26,7 +26,7 @@ pays sur la mini-carte.
 - **Mini-carte** Leaflet (OpenStreetMap) synchronisée avec le viseur, repliable ; cliquer sur un
   pays fait tourner le globe vers lui ; popup avec la danse et le meilleur score.
 - **Progression** sauvegardée dans `localStorage` (pays débloqués, meilleurs scores), compteur
-  « X / 12 danses débloquées » et bouton « Réinitialiser » (↺).
+  « X / N danses débloquées » (N = nombre de pays de la liste) et bouton « Réinitialiser » (↺).
 
 ## Technologies
 

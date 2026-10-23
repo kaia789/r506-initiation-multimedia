@@ -114,6 +114,16 @@ export const DANCES = [
     couleur: '#ff8f8f',
   },
   {
+    id: 'france',
+    pays: 'France',
+    danse: 'House (French Touch)',
+    lat: 46.6,
+    lon: 2.4,
+    bpm: 124,
+    description: 'Popularisée à Paris dans les années 1990 par la French Touch, la house filtrée se danse en pas souples et rebondissants sur un kick régulier.',
+    couleur: '#9fd3ff',
+  },
+  {
     id: 'inde',
     pays: 'Inde',
     danse: 'Bhangra',
